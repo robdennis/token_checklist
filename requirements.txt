@@ -1,0 +1,4 @@
+# Python 2.6 compatibility
+# argparse==1.2.1
+gunicorn==18.0
+Flask==0.10.1

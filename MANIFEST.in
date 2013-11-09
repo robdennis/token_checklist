@@ -1,0 +1,9 @@
+include README.rst
+recursive-include docs *
+recursive-include token_checklist/tests *
+recursive-include token_checklist/static *
+include pavement.py
+include requirements-dev.txt
+include requirements.txt
+include setup.py
+include tox.ini
