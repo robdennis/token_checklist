@@ -8,6 +8,8 @@ import re
 import json
 from collections import namedtuple
 
+from flask import Flask, send_file
+
 from token_checklist import metadata
 
 __version__ = metadata.version
@@ -34,7 +36,7 @@ class Token(namedtuple('Token', 'creature_types stats color name '
 
 
 def get_makers():
-    json_file = os.path.join(__here__, 'static', 'token_makers.json')
+    json_file = os.path.join(__here__, 'token_makers.json')
     return json.load(open(json_file, 'rb'))
 
 
@@ -74,3 +76,10 @@ def parse(card_text):
         Token(**match.groupdict())
         for match in re.finditer(pattern, card_text, re.I | re.X)
     ]
+
+
+app = Flask(__name__)
+
+@app.route('/')
+def check():
+    return send_file('templates/index.html')

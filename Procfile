@@ -1,0 +1,1 @@
+web: gunicorn token_checklist:app

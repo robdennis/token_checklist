@@ -5,8 +5,11 @@
 from __future__ import unicode_literals
 from functools import partial
 import pytest
-from token_checklist import Token, parse_card
+from token_checklist import Token, parse_card, get_makers
 
+@pytest.fixture(scope='session')
+def token_makers():
+    return get_makers()
 
 def test_sanity(token_makers):
     assert token_makers
