@@ -7,9 +7,11 @@ from functools import partial
 import pytest
 from token_checklist import Token, parse_card, get_makers
 
+
 @pytest.fixture(scope='session')
 def token_makers():
     return get_makers()
+
 
 def test_sanity(token_makers):
     assert token_makers
@@ -93,10 +95,17 @@ class TestReturnedTokens(object):
 
     @pytest.mark.xfail
     def test_mitotic_slime(self, parse_card):
-
         assert parse_card('Mitotic Slime') == [
             Token('Ooze', '2/2', 'green',
                   abilities=('"When this creature dies, put two 1/1 green '
-                              'Ooze creature tokens onto the battlefield."')),
+                             'Ooze creature tokens onto the battlefield."')),
             Token('Ooze', '1/1', 'green')
+        ]
+
+    @pytest.mark.xfail
+    def test_multiple_tokens(self, parse_card):
+        assert parse_card("Trostani's Summoner") == [
+            Token('Knight', '2/2', 'white', abilities='Vigilance'),
+            Token('Centaur', '3/3', 'green'),
+            Token('Rhino', '4/4', 'green', abilities='Trample'),
         ]

@@ -2,15 +2,15 @@
 :mod:`token_checklist` -- Given a List of Magic: The Gathering Card names, \
 return a list of tokens produced
 """
-from __future__ import unicode_literals
+from __future__ import unicode_literals, print_function
 import os
 import re
 import json
 from collections import namedtuple
 
-from flask import Flask, send_file
+from flask import Flask, send_file, request
 
-from token_checklist import metadata
+from . import metadata
 
 __version__ = metadata.version
 __author__ = metadata.authors[0]
@@ -40,14 +40,20 @@ def get_makers():
     return json.load(open(json_file, 'rb'))
 
 
-def parse_card(card_name, all_cards):
+def parse_card(card_name, all_cards, to_dict=False):
     """
     :param card_name: the name of the card to parse
+    :param to_dict: is True, return dictionaries instead of named tuples
     :return: a list of all token types found on the card
     :rtype: list
     """
 
-    return parse(all_cards.get(card_name, ''))
+    all_parsed = parse(all_cards.get(card_name, ''))
+    if to_dict:
+        return [parsed._asdict()
+                for parsed in all_parsed]
+    else:
+        return all_parsed
 
 
 def parse(card_text):
@@ -69,7 +75,7 @@ def parse(card_text):
         # - 'with (or they have) reach and first strike'
         # or
         # - 'with (or they have) "ability text."'
-		(?:(with|they\shave)\s(?P<abilities>(".*?")|([^"].+[^.])))?
+        (?:(with|they\shave)\s(?P<abilities>(".*?")|([^"].+[^.])))?
     """.format(color_group=color_group,
                type_group=type_group)
     return [
@@ -77,9 +83,18 @@ def parse(card_text):
         for match in re.finditer(pattern, card_text, re.I | re.X)
     ]
 
-
+_makers = get_makers()
 app = Flask(__name__)
 
 @app.route('/')
 def check():
     return send_file('templates/index.html')
+
+
+@app.route('/list', methods=['POST'])
+def consume_cards():
+    if request.method == 'POST':
+        print(request.data)
+    return json.dumps([parse_card(name, _makers)
+                       for name in request.data.splitlines()])
+

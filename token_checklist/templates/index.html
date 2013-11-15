@@ -3,12 +3,22 @@
 <head>
   <meta charset="utf-8">
   <title>Token Checklist</title>
-  <link rel="stylesheet" href="css/app.css"/>
+  <link rel="stylesheet" href="/static/css/app.css"/>
 </head>
 <body>
 
   <div ng-controller="TokenEntryControl">
-    {{ message }}
+    <form name="listArea">
+        <label for="list-text-area">Cards: </label>
+        <textarea id="list-text-area" name="list" ng-model="list"></textarea>
+        <button ng-click="getTokensFromList(list)">Get Tokens</button>
+    </form>
+    <div ng-show="results">
+        <ul>
+            <li ng-repeat="result in results">{{ result }}</li>
+        </ul>
+    </div>
+
   </div>
   <!-- In production use:
   <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.0/angular.min.js"></script>

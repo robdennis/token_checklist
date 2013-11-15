@@ -2,8 +2,16 @@
 
 /* Services */
 
-
-// Demonstrate how to register services
-// In this case it is a simple value service.
-angular.module('token.services', []).
-  value('version', '0.1');
+angular.module('token.services', [])
+  .factory('ListService', function($http) {
+        return {
+            get: function(names) {
+                return $http.post('/list', names).then(
+                    function(response) {
+                        console.log('resolved with: ', response.data);
+                        return response.data
+                    }
+                );
+            }
+        }
+    });

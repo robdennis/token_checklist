@@ -20,7 +20,7 @@ if 'check_output' not in dir(subprocess):
         return out
     subprocess.check_output = check_output
 
-from paver.easy import options, task, needs
+from paver.easy import options, task, needs, sh
 from paver.setuputils import install_distutils_tasks
 
 try:
@@ -38,14 +38,15 @@ from setup import setup_dict
 ## Constants
 CODE_DIRECTORY = 'token_checklist'
 DOCS_DIRECTORY = 'docs'
-TESTS_DIRECTORY = os.path.join(CODE_DIRECTORY, 'tests')
+TESTS_DIRECTORY = 'tests'
 PYTEST_FLAGS = ['--doctest-modules']
 
 ## Miscellaneous helper functions
 
 
 def get_project_files():
-    """Retrieve a list of project files, ignoring hidden files.
+    """
+    Retrieve a list of project files, ignoring hidden files.
 
     :return: sorted list of project files
     :rtype: :class:`list`
@@ -72,7 +73,8 @@ def is_git_project():
 
 
 def get_git_project_files():
-    """Retrieve a list of all non-ignored files, including untracked files,
+    """
+    Retrieve a list of all non-ignored files, including untracked files,
     excluding deleted files.
 
     :return: sorted list of git project files
@@ -91,7 +93,8 @@ def get_git_project_files():
 
 
 def git_ls_files(*cmd_args):
-    """Run ``git ls-files`` in the top-level project directory. Arguments go
+    """
+    Run ``git ls-files`` in the top-level project directory. Arguments go
     directly to execution call.
 
     :return: set of file names
@@ -121,7 +124,8 @@ def print_failed():
 
 
 def print_success_message(message):
-    """Print a message indicating success in green color to STDOUT.
+    """
+    Print a message indicating success in green color to STDOUT.
 
     :param message: the message to print
     :type message: :class:`str`
@@ -134,7 +138,8 @@ def print_success_message(message):
 
 
 def print_failure_message(message):
-    """Print a message indicating failure in red color to STDERR.
+    """
+    Print a message indicating failure in red color to STDERR.
 
     :param message: the message to print
     :type message: :class:`str`
@@ -155,7 +160,8 @@ install_distutils_tasks()
 
 
 def _doc_make(*make_args):
-    """Run make in sphinx' docs directory.
+    """
+    Run make in sphinx' docs directory.
 
     :return: exit code
     """
@@ -188,7 +194,8 @@ def _lint():
 
 
 def _test():
-    """Run the unit tests.
+    """
+    Run the unit tests.
 
     :return: exit code
     """
@@ -198,12 +205,23 @@ def _test():
     return pytest.main(PYTEST_FLAGS + [TESTS_DIRECTORY])
 
 
-def _test_all():
-    """Run lint and tests.
+def _test_karma():
+    """
+    Run the karma unit tests for angular
 
     :return: exit code
     """
-    return _lint() + _test()
+    sh('karma start config/karma.conf.js --single-run')
+    return 0
+
+
+def _test_all():
+    """
+    Run lint and tests.
+
+    :return: exit code
+    """
+    return _lint() + _test() + _test_karma()
 
 
 ## Tasks
@@ -283,7 +301,8 @@ def doc_watch():
             self.base_paths = base_paths
 
         def dispatch(self, event):
-            """Dispatches events to the appropriate methods.
+            """
+            Dispatches events to the appropriate methods.
             :param event: The event object representing the file system event.
             :type event: :class:`watchdog.events.FileSystemEvent`
             """
