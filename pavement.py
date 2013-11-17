@@ -221,7 +221,16 @@ def _test_all():
 
     :return: exit code
     """
-    return _lint() + _test() + _test_karma()
+    return _test_all_python() + _test_karma()
+
+
+def _test_all_python():
+    """
+    Run lint and python tests.
+
+    :return: exit code
+    """
+    return _lint() + _test()
 
 
 ## Tasks
@@ -252,6 +261,17 @@ def lint():
 def test_all():
     """Perform a style check and run all unit tests."""
     retcode = _test_all()
+    if retcode == 0:
+        print_passed()
+    else:
+        print_failed()
+    raise SystemExit(retcode)
+
+
+@task
+def test_all_python():
+    """Perform a style check and run all python unit tests."""
+    retcode = _test_all_python()
     if retcode == 0:
         print_passed()
     else:
