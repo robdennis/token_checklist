@@ -86,6 +86,7 @@ def parse(card_text):
 _makers = get_makers()
 app = Flask(__name__)
 
+
 @app.route('/')
 def check():
     return send_file('templates/index.html')
@@ -97,4 +98,3 @@ def consume_cards():
         print(request.data)
     return json.dumps([parse_card(name, _makers)
                        for name in request.data.splitlines()])
-
