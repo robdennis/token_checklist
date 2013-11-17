@@ -3,7 +3,6 @@
 :mod:`test_parse` -- tests related to parsing the text of cards
 """
 from __future__ import unicode_literals
-from functools import partial
 import pytest
 from token_checklist import Token, parse_card, get_makers
 
@@ -54,7 +53,10 @@ class TestReturnedTokens(object):
 
     @pytest.fixture
     def parse_card(self, token_makers):
-        return partial(parse_card, all_cards=token_makers)
+        def modified_parse(name):
+            print('checking text: {!r}'.format(token_makers.get(name, '')))
+            return parse_card(card_name=name, all_cards=token_makers)
+        return modified_parse
 
     def test_simple(self, parse_card, saproling):
         assert parse_card('Sprout') == [saproling]
@@ -93,19 +95,41 @@ class TestReturnedTokens(object):
         # this has the word token in it
         assert parse_card('Intangible Virtue') == []
 
+    def test_multiple_tokens(self, parse_card):
+        assert parse_card("One Dozen Eyes") == [
+            Token('Beast', '5/5', 'green'),
+            Token('Insect', '1/1', 'green'),
+        ]
+
     @pytest.mark.xfail
-    def test_mitotic_slime(self, parse_card):
+    def test_tokens_with_abilities(self, parse_card):
+        assert parse_card("Horncaller's Chant") == [
+            Token('Rhino', '4/4', 'green', abilities='Trample'),
+        ]
+
+        assert parse_card("Spider Spawning") == [
+            Token('Spider', '1/2', 'green', abilities='Reach'),
+        ]
+
+    @pytest.mark.xfail
+    def test_tokens_with_multiple_abilities(self, parse_card):
+        assert parse_card("Hornet Queen") == [
+            Token('Hornet', '1/1', 'green', abilities='Flying and Deathtouch'),
+        ]
+
+    @pytest.mark.xfail
+    def test_multiple_tokens_with_abilities(self, parse_card):
+        assert parse_card("Trostani's Summoner") == [
+            Token('Knight', '2/2', 'white', abilities='Vigilance'),
+            Token('Centaur', '3/3', 'green'),
+            Token('Rhino', '4/4', 'green', abilities='Trample'),
+        ]
+
+    @pytest.mark.xfail
+    def test_tokens_that_generate_tokens(self, parse_card):
         assert parse_card('Mitotic Slime') == [
             Token('Ooze', '2/2', 'green',
                   abilities=('"When this creature dies, put two 1/1 green '
                              'Ooze creature tokens onto the battlefield."')),
             Token('Ooze', '1/1', 'green')
-        ]
-
-    @pytest.mark.xfail
-    def test_multiple_tokens(self, parse_card):
-        assert parse_card("Trostani's Summoner") == [
-            Token('Knight', '2/2', 'white', abilities='Vigilance'),
-            Token('Centaur', '3/3', 'green'),
-            Token('Rhino', '4/4', 'green', abilities='Trample'),
         ]

@@ -57,27 +57,37 @@ def parse_card(card_name, all_cards, to_dict=False):
 
 
 def parse(card_text):
-    color_group = '(?:white|blue|black|red|green|colorless)'
-    type_group = '(?:artifact|enchantment)'
+    """
+    :param card_text: the string content of a the card you want to check
+    :return: all tokens (if they appear) as a list of Token namedtuples
+    """
+
+    if not re.search('puts?[^.]+tokens?[^.]+onto the battlefield', card_text,
+                     re.I):
+        # sanity check
+        return []
+
     pattern = """
-        puts?\s                       # 'put' is a key part of this template
-        .+?\s                         # and we don't care about the number
         # it's optional for the */* case and if it's X, it's always(?)
         # X for both power and toughness
         (?P<stats>(\d|X)+/(\d+|X))?\s?
         # pick of things like 'white blue and black'
-        (?P<color>{color_group}((\s|\sand\s){color_group})*)\s
+        (?P<color>(?:white|blue|black|red|green|colorless)((\s|\sand\s)
+        (?:white|blue|black|red|green|colorless))*)\s
         (?P<creature_types>.+?)\s     # these are always capitalized FWIW
         # pick of things like 'artifact enchantment'
-        (?P<extra_card_types>{type_group}((\s|\sand\s){type_group})*)?\s?
-        creature\stokens?\sonto\sthe\sbattlefield(\s|\.)*
+        (?P<extra_card_types>(?:artifact|enchantment)
+        ((\s|\sand\s)(?:artifact|enchantment))*)?\s?
+        creature\stokens?
+        # it may be comma delimited due to multiple tokens
+        (\sonto\sthe\sbattlefield(\s|\.)*)?
         # optional abilities that are either:
         # - 'with (or they have) reach and first strike'
         # or
         # - 'with (or they have) "ability text."'
         (?:(with|they\shave)\s(?P<abilities>(".*?")|([^"].+[^.])))?
-    """.format(color_group=color_group,
-               type_group=type_group)
+    """
+
     return [
         Token(**match.groupdict())
         for match in re.finditer(pattern, card_text, re.I | re.X)
