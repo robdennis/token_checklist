@@ -8,7 +8,7 @@ return a list of tokens produced
 package = 'token_checklist'
 project = 'Token Checklist'
 project_no_spaces = project.replace(' ', '')
-version = '0.1.0'
+version = '0.1'
 description = ('Given a List of Magic: The Gathering Card names, '
                'return a list of tokens produced')
 authors = ['Rob Dennis']
