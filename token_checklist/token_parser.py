@@ -34,15 +34,26 @@ def unique_everseen(iterable, key=None):
 class Token(namedtuple('Token', 'creature_types stats color name '
                                 'extra_card_types abilities')):
     def __new__(cls, creature_types, stats, color,
-                name=None, extra_card_types=None, abilities=None):
+                name=None, extra_card_types=None, abilities=None,
+                first_ability_block=None, second_ability_block=None):
         """
         To support some default arguments
         """
+        if not abilities:
+            actual_abilities = ((first_ability_block or '') +
+                                (second_ability_block or ''))
+            if '"' not in actual_abilities:
+                # naive check for normalize all keyword abilities
+                actual_abilities = actual_abilities.lower()
+        else:
+            # this only really comes up in test data
+            actual_abilities = abilities
+
         kwargs = dict(
             creature_types=creature_types, stats=stats or '*/*',
             color=color.lower(), name=name or creature_types,
             extra_card_types=extra_card_types or '',
-            abilities=abilities or ''
+            abilities=actual_abilities
         )
         return super(Token, cls).__new__(cls, **kwargs)
 
@@ -74,19 +85,28 @@ class TokenParser(object):
         :rtype: list
         """
 
-        return self.parse(self.card_mapping.get(card_name, ''))
+        return list(self.parse(self.card_mapping.get(card_name, '')))
 
     @staticmethod
-    def parse(card_text):
+    def _has_tokens(card_text):
         """
-        :param card_text: the string content of a the card you want to check
-        :return: all tokens (if they appear) as a list of Token namedtuples
+        Are there tokens to be found in this card?
+        :param card_text:
+        :return: True if there are tokens, else, False
         """
-        if not re.search('puts?[^.]+tokens?[^.]+onto the battlefield',
-                         card_text, re.I):
-            # sanity check
-            return []
 
+        return re.search('puts?[^.]+tokens?[^.]+onto the battlefield',
+                         card_text, re.I)
+
+    @staticmethod
+    def _get_snippets(card_text):
+        pattern = (r'([^.,]*?creature token[^.,;]*'
+                   r'(?:\. They[^.]+have[^.]+)?(?:\."?)?)')
+
+        return re.findall(pattern, card_text, re.I)
+
+    @staticmethod
+    def _get_token_from_snippet(snippet):
         pattern = """
             # it's optional for the */* case and if it's X, it's always(?)
             # X for both power and toughness
@@ -98,17 +118,38 @@ class TokenParser(object):
             # pick of things like 'artifact enchantment'
             (?P<extra_card_types>(?:artifact|enchantment)
             ((\s|\sand\s)(?:artifact|enchantment))*)?\s?
-            creature\stokens?
-            # it may be comma delimited due to multiple tokens
-            (\sonto\sthe\sbattlefield(\s|\.)*)?
-            # optional abilities that are either:
-            # - 'with (or they have) reach and first strike'
-            # or
-            # - 'with (or they have) "ability text."'
-            (?:(with|they\shave)\s(?P<abilities>(".*?")|([^"].+[^.])))?
+            creature\stokens?\s?
+            # sometimes abilities are before the "onto the battlefield"
+            (?:with\s(?P<first_ability_block>.+?))?\s?
+            (?:,|onto\sthe\sbattlefield|$)\.?\s?
+            # sometimes after
+            (?:(?:with|they\shave)\s(?P<second_ability_block>".+?"))?
         """
 
-        return [
-            Token(**match.groupdict())
-            for match in re.finditer(pattern, card_text, re.I | re.X)
-        ]
+        match = re.search(pattern, snippet, re.I | re.X)
+        if match:
+            return Token(**match.groupdict())
+        else:
+            return None
+
+    @staticmethod
+    def parse(card_text):
+        """
+        :param card_text: the string content of a the card you want to check
+        :return: all tokens (if they appear) as a list of Token namedtuples
+        """
+        if not TokenParser._has_tokens(card_text):
+            # sanity check
+            return []
+
+        def yield_tokens_from_snippets():
+            for snippet in TokenParser._get_snippets(card_text):
+                found_token = TokenParser._get_token_from_snippet(snippet)
+                if found_token is not None:
+                    yield found_token
+                    if TokenParser._has_tokens(found_token.abilities):
+                        yield TokenParser._get_token_from_snippet(
+                            found_token.abilities
+                        )
+
+        return yield_tokens_from_snippets()

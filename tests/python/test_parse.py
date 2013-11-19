@@ -63,7 +63,47 @@ class TestDumpingTokens(object):
         )
 
 
-class TestReturnedTokens(object):
+class TestBreakdownRulesText(object):
+
+    def assert_expected_number_of_snippets(self, card_text, expected):
+        assert len(TokenParser._get_snippets(card_text)) == expected
+
+    def assert_token_from_snippet(self, snippet, expected):
+        assert TokenParser._get_token_from_snippet(snippet) == expected
+
+    def test_has_tokens(self, token_parser, sprout_text):
+        assert token_parser._has_tokens(sprout_text)
+        assert not token_parser._has_tokens('')
+
+    def test_got_snippets(self, token_parser, sprout_text, doj_text,
+                          bestial_menace_text):
+        self.assert_expected_number_of_snippets(sprout_text, 1)
+        self.assert_expected_number_of_snippets(doj_text, 2)
+        self.assert_expected_number_of_snippets(bestial_menace_text, 3)
+
+    def test_get_token_from_sprout_snippet(self, sprout_text, saproling):
+        snippets = TokenParser._get_snippets(sprout_text)
+        self.assert_token_from_snippet(snippets[0], saproling)
+
+    def test_get_token_from_decree_snippet(self, doj_text, soldier, angel):
+        snippets = TokenParser._get_snippets(doj_text)
+        self.assert_token_from_snippet(snippets[0], angel)
+        self.assert_token_from_snippet(snippets[1], soldier)
+
+    def test_get_token_from_menace_snippet(self, bestial_menace_text,
+                                           snake, wolf, elephant):
+        snippets = TokenParser._get_snippets(bestial_menace_text)
+        self.assert_token_from_snippet(snippets[0], snake)
+        self.assert_token_from_snippet(snippets[1], wolf)
+        self.assert_token_from_snippet(snippets[2], elephant)
+
+    def test_get_token_from_gutter_grime_snippet(self, gutter_grime_text,
+                                                 gutter_grime):
+        snippets = TokenParser._get_snippets(gutter_grime_text)
+        self.assert_token_from_snippet(snippets[0], gutter_grime)
+
+
+class TestTokensFromCards(object):
 
     @pytest.fixture
     def elf_warrior(self):
@@ -77,13 +117,6 @@ class TestReturnedTokens(object):
     def hammer_golem(self):
         return Token('Golem', '3/3', 'colorless',
                      extra_card_types='enchantment artifact')
-
-    @pytest.fixture
-    def gutter_grime(self):
-        return Token('Ooze', '*/*', 'green',
-                     abilities=('"This creature\'s power and toughness are '
-                                'each equal to the number of slime counters '
-                                'on Gutter Grime."'))
 
     def test_simple(self, parse_card, saproling):
         assert parse_card('Sprout') == [saproling]
@@ -121,37 +154,39 @@ class TestReturnedTokens(object):
         # this has the word token in it
         assert parse_card('Intangible Virtue') == []
 
-    def test_multiple_tokens(self, parse_card):
+    def test_multiple_tokens(self, parse_card, wolf, elephant):
         assert parse_card("One Dozen Eyes") == [
             Token('Beast', '5/5', 'green'),
             Token('Insect', '1/1', 'green'),
         ]
 
-    @pytest.mark.xfail
+        assert parse_card("Bestial Menace") == [
+            Token('Snake', '1/1', 'green'),
+            wolf,
+            elephant,
+        ]
+
     def test_tokens_with_abilities(self, parse_card):
         assert parse_card("Horncaller's Chant") == [
-            Token('Rhino', '4/4', 'green', abilities='Trample'),
+            Token('Rhino', '4/4', 'green', abilities='trample'),
         ]
 
         assert parse_card("Spider Spawning") == [
-            Token('Spider', '1/2', 'green', abilities='Reach'),
+            Token('Spider', '1/2', 'green', abilities='reach'),
         ]
 
-    @pytest.mark.xfail
     def test_tokens_with_multiple_abilities(self, parse_card):
         assert parse_card("Hornet Queen") == [
-            Token('Hornet', '1/1', 'green', abilities='Flying and Deathtouch'),
+            Token('Insect', '1/1', 'green', abilities='flying and deathtouch')
         ]
 
-    @pytest.mark.xfail
     def test_multiple_tokens_with_abilities(self, parse_card):
         assert parse_card("Trostani's Summoner") == [
-            Token('Knight', '2/2', 'white', abilities='Vigilance'),
+            Token('Knight', '2/2', 'white', abilities='vigilance'),
             Token('Centaur', '3/3', 'green'),
-            Token('Rhino', '4/4', 'green', abilities='Trample'),
+            Token('Rhino', '4/4', 'green', abilities='trample'),
         ]
 
-    @pytest.mark.xfail
     def test_tokens_that_generate_tokens(self, parse_card):
         assert parse_card('Mitotic Slime') == [
             Token('Ooze', '2/2', 'green',
