@@ -35,5 +35,4 @@ def check():
 def consume_cards():
     if request.method == 'POST':
         print(request.data)
-    return json.dumps([_parser.get_tokens(name, to_dict=True)
-                       for name in request.data.splitlines()])
+    return json.dumps(_parser.dump_all_tokens(request.data.splitlines()))
