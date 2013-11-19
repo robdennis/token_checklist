@@ -3,8 +3,11 @@
 :mod:`test_parse` -- tests related to parsing the text of cards
 """
 from __future__ import unicode_literals
+import itertools
+
 import pytest
-from token_checklist import Token, parse_card, get_makers
+from token_checklist import get_makers
+from token_checklist.token_parser import Token, TokenParser
 
 
 @pytest.fixture(scope='session')
@@ -12,15 +15,55 @@ def token_makers():
     return get_makers()
 
 
-def test_sanity(token_makers):
-    assert token_makers
-    assert 'Sprout' in token_makers
+@pytest.fixture(scope='session')
+def token_parser(token_makers):
+    return TokenParser(token_makers)
+
+
+@pytest.fixture(scope='session')
+def parse_card(token_parser):
+    return token_parser.get_tokens
+
+
+@pytest.fixture(scope='session')
+def dump_cards(token_parser):
+    return token_parser.dump_all_tokens
+
+
+class TestDumpingTokens(object):
+    def assert_index_equal(self, index, actual, expected):
+        # index is brought in specifically to be show in py.test's error
+        # traceback
+        assert actual == expected
+
+    def assert_cards_in_order(self, actual, expected_cards):
+        assert len(actual) == len(expected_cards)
+
+        for actual, expected, idx in itertools.izip(
+            actual, (dict(card._asdict()) for card in expected_cards),
+            itertools.count()
+        ):
+            self.assert_index_equal(idx, actual, expected)
+
+    def test_simple(self, dump_cards, saproling, myr, ooze):
+        self.assert_cards_in_order(
+            dump_cards(['Sprout', 'Genesis Chamber', 'Miming Slime']),
+            [saproling, myr, ooze]
+        )
+
+    def test_deduping(self, dump_cards, saproling, squirrel):
+        self.assert_cards_in_order(
+            dump_cards(['Sprout', 'Sprout', 'Sprout']),
+            [saproling]
+        )
+
+        self.assert_cards_in_order(
+            dump_cards(['Sprout', 'Squirrel Nest', 'Thallid']),
+            [saproling, squirrel]
+        )
 
 
 class TestReturnedTokens(object):
-    @pytest.fixture
-    def saproling(self):
-        return Token('Saproling', '1/1', 'green')
 
     @pytest.fixture
     def elf_warrior(self):
@@ -36,27 +79,11 @@ class TestReturnedTokens(object):
                      extra_card_types='enchantment artifact')
 
     @pytest.fixture
-    def myr(self):
-        return Token('Myr', '1/1', 'colorless',
-                     extra_card_types='artifact')
-
-    @pytest.fixture
-    def ooze(self):
-        return Token('Ooze', 'X/X', 'green')
-
-    @pytest.fixture
     def gutter_grime(self):
         return Token('Ooze', '*/*', 'green',
                      abilities=('"This creature\'s power and toughness are '
                                 'each equal to the number of slime counters '
                                 'on Gutter Grime."'))
-
-    @pytest.fixture
-    def parse_card(self, token_makers):
-        def modified_parse(name):
-            print('checking text: {!r}'.format(token_makers.get(name, '')))
-            return parse_card(card_name=name, all_cards=token_makers)
-        return modified_parse
 
     def test_simple(self, parse_card, saproling):
         assert parse_card('Sprout') == [saproling]
@@ -69,12 +96,11 @@ class TestReturnedTokens(object):
         assert parse_card('Gilt-Leaf Ambush') == [elf_warrior]
         assert parse_card('Hunting Triad') == [elf_warrior]
         assert parse_card('Imperious Perfect') == [elf_warrior]
-        # this notably makes green AND WHITE Elf Warrior
-        assert parse_card('Mercy Killing ') != [Token('Elf Warrior', '1/1',
-                                                      'green and white')]
 
     def test_multi_color_and_multi_class(self, parse_card, rg_goblin_warrior):
         assert parse_card('Wort, the Raidmother') == [rg_goblin_warrior]
+        assert parse_card('Mercy Killing') == [Token('Elf Warrior', '1/1',
+                                                     'green and white')]
 
     def test_extra_types(self, parse_card, hammer_golem, myr):
         assert parse_card('Hammer of Purphoros') == [hammer_golem]
